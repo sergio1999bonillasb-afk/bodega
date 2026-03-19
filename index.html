@@ -1,285 +1,86 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bodega Miramonte</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <style>
-        .active-tab { color: #1e40af; border-top: 4px solid #1e40af; background: #f1f5f9; }
-        .card-shadow { box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-    </style>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bodega Miramonte</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 </head>
-<body class="bg-slate-50 pb-24 font-sans">
 
-    <!-- LOGIN / SELECCION USUARIO -->
-    <div id="login-screen" class="fixed inset-0 bg-white z-[2000] flex flex-col items-center justify-center p-8">
-        <img src="logo.png" alt="Logo" class="w-32 mb-4 object-contain">
-        <h1 class="text-3xl font-black text-blue-900 tracking-tighter">BODEGA MIRAMONTE</h1>
-        <p class="text-slate-400 mb-12 font-medium text-center">Seleccione operador para ingresar</p>
-        
-        <div class="space-y-4 w-full max-w-xs">
-            <button onclick="login('SERGIO')" class="w-full p-5 bg-slate-50 rounded-2xl flex items-center border-2 border-slate-100 hover:border-blue-500 transition-all active:scale-95 group">
-                <span class="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center font-bold mr-4 shadow-lg group-hover:bg-blue-700">S</span>
-                <span class="font-bold text-slate-700 text-lg">Sergio</span>
-            </button>
-            <button onclick="login('RAUL')" class="w-full p-5 bg-slate-50 rounded-2xl flex items-center border-2 border-slate-100 hover:border-blue-500 transition-all active:scale-95 group">
-                <span class="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center font-bold mr-4 shadow-lg group-hover:bg-blue-700">R</span>
-                <span class="font-bold text-slate-700 text-lg">Raúl</span>
-            </button>
-            <button onclick="login('ROMEO')" class="w-full p-5 bg-slate-50 rounded-2xl flex items-center border-2 border-slate-100 hover:border-blue-500 transition-all active:scale-95 group">
-                <span class="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center font-bold mr-4 shadow-lg group-hover:bg-blue-700">R</span>
-                <span class="font-bold text-slate-700 text-lg">Romeo</span>
-            </button>
+<body class="bg-gray-100">
+
+<!-- LOGIN -->
+<div id="login" class="h-screen flex flex-col justify-center items-center">
+    <img src="./logo.png" style="width:120px;">
+    <h1>Bodega Miramonte</h1>
+
+    <button onclick="login('SERGIO')">Sergio</button>
+    <button onclick="login('RAUL')">Raúl</button>
+    <button onclick="login('ROMEO')">Romeo</button>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none; padding:20px;">
+    <h2 id="user"></h2>
+
+    <input id="search" placeholder="Buscar código" oninput="buscar()">
+
+    <div id="resultados"></div>
+</div>
+
+<script>
+
+const API_URL = "https://script.google.com/macros/s/AKfycbxa1yYELOH_y4Cn-O_9NINnJg2P_Xv2FSoAN1q-ze_whWKe7U4Uad0p4VZzC0w6x4m7/exec"; // ?? PON TU URL
+
+let data = [];
+let currentUser = "";
+
+async function login(user){
+    currentUser = user;
+    document.getElementById("user").innerText = user;
+
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "block";
+
+    await cargarDatos();
+}
+
+async function cargarDatos(){
+    try{
+        const res = await fetch(API_URL + "?action=getData");
+        data = await res.json();
+    }catch(e){
+        alert("Error cargando datos");
+    }
+}
+
+function buscar(){
+    const val = document.getElementById("search").value.toUpperCase();
+
+    const filtrado = data.filter(p => p.Codigo == val);
+
+    let html = "";
+
+    filtrado.forEach(p=>{
+        html += `
+        <div style="background:white; margin:10px; padding:10px;">
+            <b>${p.Codigo}</b><br>
+            ${p.Descripcion}<br>
+            Stock: ${p.Stock_Bodega}<br>
+            Ubicación: ${p.Ubicacion}<br>
+            Lote: ${p.Lote}
         </div>
-    </div>
+        `;
+    });
 
-    <!-- HEADER -->
-    <header class="bg-white p-4 shadow-sm flex flex-col items-center border-b sticky top-0 z-50">
-        <div class="flex justify-between w-full items-center">
-            <div class="flex items-center gap-2">
-                <img src="logo.png" class="w-8 h-8 object-contain">
-                <span class="font-black text-blue-900">MIRAMONTE</span>
-            </div>
-            <div id="user-tag" class="bg-blue-100 text-blue-700 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">USER</div>
-        </div>
-    </header>
+    document.getElementById("resultados").innerHTML = html;
+}
 
-    <main class="p-4 max-w-lg mx-auto">
-        
-        <!-- 1. PESTAÑA BUSQUEDA -->
-        <div id="tab-search" class="space-y-4">
-            <div class="relative">
-                <input type="text" id="searchInput" oninput="liveSearch()" placeholder="Buscar código EQBL / EQFL..." class="w-full p-5 pl-14 bg-white rounded-3xl border-2 border-transparent focus:border-blue-500 shadow-sm outline-none transition-all font-bold text-lg">
-                <i data-lucide="search" class="absolute left-5 top-5 text-slate-400"></i>
-            </div>
-            <div id="search-results" class="space-y-3">
-                <p class="text-center text-slate-400 mt-10">Ingrese código para ver existencias</p>
-            </div>
-        </div>
+</script>
 
-        <!-- 2. PESTAÑA HISTORIAL -->
-        <div id="tab-history" class="hidden space-y-4">
-            <div class="relative">
-                <input type="text" id="histInput" oninput="filterHistory()" placeholder="Filtrar historial por código..." class="w-full p-4 pl-12 bg-white rounded-2xl border-none shadow-sm">
-                <i data-lucide="filter" class="absolute left-4 top-4 text-slate-400 w-5"></i>
-            </div>
-            <div id="history-container" class="space-y-2"></div>
-        </div>
-
-        <!-- 3. PESTAÑA REGISTRO -->
-        <div id="tab-register" class="hidden animate-in fade-in">
-            <div id="reader" class="rounded-3xl overflow-hidden mb-4 bg-black border-4 border-white shadow-xl"></div>
-            <div class="bg-white p-6 rounded-[2.5rem] card-shadow border border-slate-100 space-y-4">
-                <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Código del Artículo</label>
-                    <input type="text" id="regCode" onchange="autoFetchDesc()" class="w-full p-4 bg-slate-50 rounded-2xl font-bold text-blue-800 outline-none focus:ring-2 focus:ring-blue-500">
-                    <div id="regDesc" class="mt-2 text-sm font-bold text-blue-600 px-2 min-h-[1.25rem]"></div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="col-span-1">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tipo Mov.</label>
-                        <select id="regType" onchange="toggleMoveFields()" class="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none">
-                            <option value="ENTRADA">ENTRADA</option>
-                            <option value="SALIDA">SALIDA</option>
-                            <option value="MOVIMIENTO">RE-UBICACIÓN</option>
-                        </select>
-                    </div>
-                    <div class="col-span-1">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cantidad</label>
-                        <input type="number" id="regQty" class="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none">
-                    </div>
-                </div>
-
-                <div id="move-extra" class="hidden space-y-4 bg-blue-50 p-4 rounded-3xl">
-                    <input type="text" id="regOldLoc" placeholder="Ubicación Anterior" class="w-full p-3 bg-white rounded-xl border-none font-bold">
-                    <select id="regNewLoc" class="w-full p-3 bg-white rounded-xl border-none font-bold">
-                        <option value="">Nueva Ubicación...</option>
-                        <option value="A-1">A-1</option><option value="A-2">A-2</option><option value="A-3">A-3</option>
-                        <option value="B-1">B-1</option><option value="B-2">B-2</option><option value="B-3">B-3</option>
-                        <option value="PARED">PARED</option><option value="TARIMA">TARIMA</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Número de Lote (5 Dígitos)</label>
-                    <input type="text" id="regLot" maxlength="5" class="w-full p-4 bg-slate-50 rounded-2xl font-bold tracking-widest outline-none">
-                </div>
-
-                <button onclick="saveToCloud()" id="btnSave" class="w-full bg-blue-800 text-white p-5 rounded-3xl font-black shadow-xl shadow-blue-200 active:scale-95 transition-all uppercase tracking-widest">Guardar en Sistema</button>
-            </div>
-        </div>
-    </main>
-
-    <!-- NAVEGACIÓN -->
-    <nav class="fixed bottom-0 w-full bg-white/80 backdrop-blur-lg border-t border-slate-100 flex justify-around p-3 z-50">
-        <button onclick="setTab('search')" id="nav-search" class="flex flex-col items-center p-2 rounded-2xl transition active-tab">
-            <i data-lucide="search"></i>
-            <span class="text-[10px] mt-1 font-black uppercase">Búsqueda</span>
-        </button>
-        <button onclick="setTab('history')" id="nav-history" class="flex flex-col items-center p-2 rounded-2xl transition">
-            <i data-lucide="history"></i>
-            <span class="text-[10px] mt-1 font-black uppercase">Historial</span>
-        </button>
-        <button onclick="setTab('register')" id="nav-register" class="flex flex-col items-center p-2 rounded-2xl transition">
-            <i data-lucide="scan-barcode"></i>
-            <span class="text-[10px] mt-1 font-black uppercase">Registro</span>
-        </button>
-    </nav>
-
-    <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbxa1yYELOH_y4Cn-O_9NINnJg2P_Xv2FSoAN1q-ze_whWKe7U4Uad0p4VZzC0w6x4m7/exec";
-        let currentUser = "";
-        let allStock = [];
-        let scanner = null;
-
-        function login(user) {
-            currentUser = user;
-            document.getElementById('user-tag').innerText = user;
-            document.getElementById('login-screen').classList.add('hidden');
-            fetchData();
-        }
-
-        async function fetchData() {
-            const r = await fetch(API_URL + "?action=getData");
-            allStock = await r.json();
-        }
-
-        function liveSearch() {
-            const val = document.getElementById('searchInput').value.toUpperCase();
-            if(!val) { document.getElementById('search-results').innerHTML = ""; return; }
-            
-            const results = allStock.filter(p => p.Artículo.toString().toUpperCase() === val);
-            let html = "";
-            
-            if(results.length > 0) {
-                results.forEach(p => {
-                    html += `
-                    <div class="bg-white p-5 rounded-3xl border border-slate-100 card-shadow">
-                        <div class="text-blue-800 font-black text-xs uppercase mb-1">${p.Artículo}</div>
-                        <div class="font-bold text-slate-800 leading-tight mb-4">${p.Descripción}</div>
-                        <div class="grid grid-cols-3 gap-2">
-                            <div class="bg-slate-50 p-2 rounded-xl text-center">
-                                <span class="text-[9px] font-black text-slate-400 block uppercase">Sistema</span>
-                                <span class="font-black text-slate-700">${p.Stock_Sistema}</span>
-                            </div>
-                            <div class="bg-blue-50 p-2 rounded-xl text-center">
-                                <span class="text-[9px] font-black text-blue-400 block uppercase">Bodega</span>
-                                <span class="font-black text-blue-800 text-lg">${p.Stock_Bodega}</span>
-                            </div>
-                            <div class="bg-slate-50 p-2 rounded-xl text-center">
-                                <span class="text-[9px] font-black text-slate-400 block uppercase">Diferencia</span>
-                                <span class="font-black ${p.Diferencia != 0 ? 'text-red-500' : 'text-slate-700'}">${p.Diferencia}</span>
-                            </div>
-                        </div>
-                        <div class="mt-3 flex justify-between items-center bg-slate-50 p-3 rounded-2xl">
-                           <div class="text-[10px] font-black text-slate-500 uppercase">Ubicación: <span class="text-slate-800">${p.Ubicación}</span></div>
-                           <div class="text-[10px] font-black text-slate-500 uppercase">Lote: <span class="text-blue-800">${p.Lote}</span></div>
-                        </div>
-                        <div class="text-[9px] font-bold text-slate-400 mt-2 italic">Etiquetas por rollo: ${p.Etiquetas_x_Rollo}</div>
-                    </div>`;
-                });
-            } else { html = "<p class='text-center text-slate-400'>Artículo no encontrado en inventario</p>"; }
-            document.getElementById('search-results').innerHTML = html;
-        }
-
-        function autoFetchDesc() {
-            const cod = document.getElementById('regCode').value.toUpperCase();
-            const prod = allStock.find(p => p.Artículo.toString().toUpperCase() === cod);
-            if(prod) {
-                document.getElementById('regDesc').innerText = prod.Descripción;
-                // Guardamos descripción y etiquetas en atributos temporales
-                document.getElementById('regDesc').dataset.desc = prod.Descripción;
-                document.getElementById('regDesc').dataset.etiq = prod.Etiquetas_x_Rollo;
-            }
-        }
-
-        async function saveToCloud() {
-            const btn = document.getElementById('btnSave');
-            const p = {
-                user: currentUser,
-                codigo: document.getElementById('regCode').value,
-                desc: document.getElementById('regDesc').dataset.desc,
-                etiq: document.getElementById('regDesc').dataset.etiq,
-                tipo: document.getElementById('regType').value,
-                cant: document.getElementById('regQty').value,
-                ubAnterior: document.getElementById('regOldLoc').value,
-                ubNueva: document.getElementById('regNewLoc').value,
-                lote: document.getElementById('regLot').value
-            };
-
-            if(!p.codigo || !p.cant || !p.lote) return Swal.fire("Error", "Complete todos los campos", "error");
-
-            btn.disabled = true; btn.innerText = "PROCESANDO...";
-            
-            try {
-                await fetch(API_URL, { method: 'POST', body: JSON.stringify(p) });
-                Swal.fire({ title: "Guardado", icon: "success", timer: 1500 });
-                location.reload();
-            } catch (e) {
-                Swal.fire("Error", "No se pudo conectar con el servidor", "error");
-                btn.disabled = false; btn.innerText = "GUARDAR EN SISTEMA";
-            }
-        }
-
-        function setTab(tab) {
-            ['search', 'history', 'register'].forEach(t => {
-                document.getElementById('tab-' + t).classList.add('hidden');
-                document.getElementById('nav-' + t).classList.remove('active-tab');
-            });
-            document.getElementById('tab-' + tab).classList.remove('hidden');
-            document.getElementById('nav-' + tab).classList.add('active-tab');
-            if(tab === 'register') startScan(); else stopScan();
-            if(tab === 'history') loadHistory();
-        }
-
-        async function loadHistory() {
-            const res = await fetch(API_URL + "?action=getHistory");
-            const data = await res.json();
-            window.fullHistory = data;
-            filterHistory();
-        }
-
-        function filterHistory() {
-            const val = document.getElementById('histInput').value.toUpperCase();
-            const container = document.getElementById('history-container');
-            let html = "";
-            const filtered = window.fullHistory.filter(r => r[2].toString().toUpperCase().includes(val));
-            
-            filtered.forEach(r => {
-                const fecha = new Date(r[0]).toLocaleDateString();
-                html += `
-                <div class="bg-white p-3 rounded-2xl shadow-sm border-l-4 ${r[4] === 'ENTRADA' ? 'border-green-500' : (r[4] === 'SALIDA' ? 'border-red-500' : 'border-blue-500')}">
-                    <div class="flex justify-between font-black text-[10px]">
-                        <span>${fecha} - ${r[1]}</span>
-                        <span class="text-blue-600">${r[4]}</span>
-                    </div>
-                    <div class="font-bold text-slate-800 text-xs">${r[2]} - Lote: ${r[8]}</div>
-                    <div class="text-slate-500 text-[10px]">Cantidad: ${r[5]} ${r[6] ? '| De: '+r[6]+' A: '+r[7] : ''}</div>
-                </div>`;
-            });
-            container.innerHTML = html;
-        }
-
-        function toggleMoveFields() {
-            document.getElementById('move-extra').classList.toggle('hidden', document.getElementById('regType').value !== 'MOVIMIENTO');
-        }
-
-        function startScan() {
-            scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-            scanner.render(res => {
-                document.getElementById('regCode').value = res;
-                autoFetchDesc();
-            });
-        }
-
-        function stopScan() { if(scanner) scanner.clear(); }
-
-        lucide.createIcons();
-    </script>
 </body>
 </html>
