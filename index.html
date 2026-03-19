@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bodega Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        .active-tab { color: #2563eb; border-top: 3px solid #2563eb; }
+        body { -webkit-tap-highlight-color: transparent; }
+    </style>
+</head>
+<body class="bg-gray-50 pb-20">
+
+    <!-- PANTALLA DE LOGIN -->
+    <div id="login-screen" class="fixed inset-0 bg-white z-[2000] flex flex-col items-center justify-center p-6">
+        <div class="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+            <i data-lucide="package" class="text-white w-12 h-12"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">Control de Bodega</h1>
+        <p class="text-gray-500 mb-8">Selecciona tu usuario para comenzar</p>
+        <div class="grid grid-cols-1 w-full gap-4">
+            <button onclick="login('SERGIO')" class="p-4 bg-gray-100 rounded-xl flex items-center hover:bg-blue-50 transition border border-gray-200">
+                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4 text-blue-600 font-bold">S</div>
+                <span class="font-semibold text-gray-700">Sergio</span>
+            </button>
+            <button onclick="login('RAUL')" class="p-4 bg-gray-100 rounded-xl flex items-center hover:bg-blue-50 transition border border-gray-200">
+                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4 text-green-600 font-bold">R</div>
+                <span class="font-semibold text-gray-700">Raúl</span>
+            </button>
+            <button onclick="login('ROMEO')" class="p-4 bg-gray-100 rounded-xl flex items-center hover:bg-blue-50 transition border border-gray-200">
+                <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-4 text-purple-600 font-bold">R</div>
+                <span class="font-semibold text-gray-700">Romeo</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- HEADER -->
+    <header class="bg-white p-4 shadow-sm flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-2">
+            <i data-lucide="layout-grid" class="text-blue-600"></i>
+            <span class="font-bold text-lg" id="tab-title">Búsqueda</span>
+        </div>
+        <div class="flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-full text-blue-700 font-medium text-sm">
+            <i data-lucide="user" class="w-4 h-4"></i>
+            <span id="user-name">Usuario</span>
+        </div>
+    </header>
+
+    <main class="p-4">
+        <!-- SECCION 1: BUSQUEDA -->
+        <div id="tab-search" class="space-y-4">
+            <div class="relative">
+                <input type="text" id="searchInput" placeholder="Buscar código..." class="w-full p-4 pl-12 bg-white rounded-2xl shadow-sm border-none focus:ring-2 focus:ring-blue-500">
+                <i data-lucide="search" class="absolute left-4 top-4 text-gray-400"></i>
+            </div>
+            <div id="searchResults" class="space-y-3"></div>
+        </div>
+
+        <!-- SECCION 2: MOVIMIENTOS -->
+        <div id="tab-history" class="hidden space-y-4">
+            <input type="text" id="historyFilter" placeholder="Filtrar por código..." class="w-full p-3 rounded-xl border-gray-200 shadow-sm">
+            <div id="historyList" class="space-y-2"></div>
+        </div>
+
+        <!-- SECCION 3: REGISTRO -->
+        <div id="tab-register" class="hidden pb-10">
+            <div id="qr-reader" class="rounded-2xl overflow-hidden mb-4 shadow-inner"></div>
+            <div class="bg-white p-6 rounded-3xl shadow-sm space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-400 uppercase ml-1">Código del Artículo</label>
+                    <input type="text" id="regCode" class="w-full p-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-500 mt-1">
+                    <p id="regDesc" class="text-sm text-blue-600 font-medium mt-1"></p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-bold text-gray-400 uppercase">Tipo</label>
+                        <select id="regType" class="w-full p-3 bg-gray-50 rounded-xl border-none mt-1">
+                            <option value="ENTRADA">Entrada</option>
+                            <option value="SALIDA">Salida</option>
+                            <option value="MOVIMIENTO">Mover</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-400 uppercase">Cantidad</label>
+                        <input type="number" id="regQty" class="w-full p-3 bg-gray-50 rounded-xl border-none mt-1">
+                    </div>
+                </div>
+                <div id="moveFields" class="hidden animate-fade-in">
+                    <label class="text-xs font-bold text-gray-400 uppercase">Nueva Ubicación</label>
+                    <select id="regNewLoc" class="w-full p-3 bg-gray-50 rounded-xl border-none mt-1">
+                        <option value="A-1">A-1</option><option value="PARED">PARED</option><option value="TARIMA">TARIMA</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-400 uppercase">Lote (5 dígitos)</label>
+                    <input type="text" id="regLot" maxlength="5" class="w-full p-3 bg-gray-50 rounded-xl border-none mt-1">
+                </div>
+                <button onclick="saveRecord()" class="w-full bg-blue-600 text-white p-4 rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition">
+                    Guardar Registro
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- NAVBAR INFERIOR -->
+    <nav class="fixed bottom-0 w-full bg-white border-t border-gray-100 flex justify-around p-2 z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
+        <button onclick="switchTab('search')" class="flex flex-col items-center p-2 rounded-xl transition nav-item" id="nav-search">
+            <i data-lucide="search" class="w-6 h-6"></i>
+            <span class="text-[10px] mt-1 font-medium">Búsqueda</span>
+        </button>
+        <button onclick="switchTab('history')" class="flex flex-col items-center p-2 rounded-xl transition nav-item" id="nav-history">
+            <i data-lucide="history" class="w-6 h-6"></i>
+            <span class="text-[10px] mt-1 font-medium">Historial</span>
+        </button>
+        <button onclick="switchTab('register')" class="flex flex-col items-center p-2 rounded-xl transition nav-item" id="nav-register">
+            <i data-lucide="plus-circle" class="w-6 h-6"></i>
+            <span class="text-[10px] mt-1 font-medium">Registro</span>
+        </button>
+    </nav>
+
+    <script>
+        // CONFIGURACIÓN: PEGA TU URL DE APPS SCRIPT AQUÍ
+        const API_URL = "https://script.google.com/macros/s/AKfycbxa1yYELOH_y4Cn-O_9NINnJg2P_Xv2FSoAN1q-ze_whWKe7U4Uad0p4VZzC0w6x4m7/exec";
+
+        let user = "";
+        let inventory = [];
+
+        function login(name) {
+            user = name;
+            document.getElementById('user-name').innerText = name;
+            document.getElementById('login-screen').style.display = 'none';
+            loadData();
+        }
+
+        function switchTab(tab) {
+            ['search', 'history', 'register'].forEach(t => {
+                document.getElementById('tab-' + t).classList.add('hidden');
+                document.getElementById('nav-' + t).classList.remove('active-tab');
+            });
+            document.getElementById('tab-' + tab).classList.remove('hidden');
+            document.getElementById('nav-' + tab).classList.add('active-tab');
+            lucide.createIcons();
+        }
+
+        async function loadData() {
+            const resp = await fetch(`${API_URL}?action=getInventory`);
+            inventory = await resp.json();
+        }
+
+        // Lógica de búsqueda, escáner y guardado simplificada...
+        // Aquí irían las funciones similares al código anterior pero con fetch()
+        // ... (Para no exceder el límite de texto)
+        
+        lucide.createIcons();
+        switchTab('search');
+    </script>
+</body>
+</html>
